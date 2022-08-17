@@ -1,0 +1,15 @@
+*.pyc
+*.bak
+*.so
+*.out
+*.ipynb_checkpoints*
+*~
+.cache
+.DS_Store
+acrg/config/paths.y*ml
+.vscode*
+*.code-workspace
+*.jupyter_symlinks
+*__pycache__*
+*.pytest_cache*
+*conservative*
