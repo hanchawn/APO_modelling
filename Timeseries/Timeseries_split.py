@@ -66,7 +66,7 @@ else:
     clim_str = '-climatology' if year>2020 or climatology else ''
     emissions_names['day']['o2_jena_day'] = f'o2{clim_str}-jena-ocean-day'
 
-    emissions_names = han_func.flatten_nested_dict(emissions_names, join_keys=False)
+    emissions_names = apo_funcs.flatten_nested_dict(emissions_names, join_keys=False)
 
 print('\nemissions names:')
 [print(f'{spec}: {emissions_name}') for spec, emissions_name in emissions_names.items()]
