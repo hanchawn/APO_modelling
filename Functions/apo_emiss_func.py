@@ -11,7 +11,7 @@ from calendar import monthrange
 from acrg.name import name
 from acrg.name.flux import write
 
-import han_func
+import apo_funcs
 
 def mask_land_ocean(lat, lon, mask_region):
     '''
@@ -113,7 +113,7 @@ def climatology(data, start_year=None, end_year=None, res=None, flux_var=None, u
             write_kwargs['source'] = f"climatology-{write_kwargs['source']}" \
                                      if 'climatology' not in write_kwargs['source'] else write_kwargs['source']
         if 'prior_info_dict' not in write_kwargs.keys() and 'prior_file_1' in data.attrs.keys():
-            write_kwargs['prior_info_dict'] = han_func.get_prior_info(attributes = data.attrs)
+            write_kwargs['prior_info_dict'] = apo_funcs.get_prior_info(attributes = data.attrs)
             # write_kwargs['prior_info_dict'] = {data.attrs['prior_file_1']: [data.attrs['prior_file_1_version'],
             #                                                                 data.attrs['prior_file_1_raw_resolution'],
             #                                                                 data.attrs['prior_file_1_reference']]}
@@ -414,7 +414,7 @@ def apo(ocean_o2, ff_co2, ocean_co2, ocean_n2, ff_o2=None,
             mol fraction of nitrogen in dry air
             default = 0.78084
     '''
-    import han_func
+    import APO_modelling.Functions.apo_funcs as apo_funcs
     
     apo_split = apo_species_split(ocean_o2 = ocean_o2,
                                   ff_co2 = ff_co2,
@@ -428,13 +428,13 @@ def apo(ocean_o2, ff_co2, ocean_co2, ocean_n2, ff_o2=None,
                                   convert = convert)
 
     if apo_split['o2_ocean'].time.diff(dim="time").values.mean() != apo_split['co2_ocean'].time.diff(dim="time").values.mean():
-        apo_ocean_o2 = han_func.combine_diff_resolution(apo_split['o2_ocean'], apo_split['co2_ocean'],
+        apo_ocean_o2 = apo_funcs.combine_diff_resolution(apo_split['o2_ocean'], apo_split['co2_ocean'],
                                                         method = 'add', verbose = 'False')
     else:
         apo_ocean_o2 = apo_split['o2_ocean'] + apo_split['co2_ocean']
 
     if apo_ocean_o2.time.diff(dim="time").values.mean() != apo_split['n2_ocean'].time.diff(dim="time").values.mean():
-        apo_ocean = han_func.combine_diff_resolution(apo_ocean_o2, apo_split['n2_ocean'],
+        apo_ocean = apo_funcs.combine_diff_resolution(apo_ocean_o2, apo_split['n2_ocean'],
                                                      method = 'add', verbose = 'False')
     else:
         apo_ocean = apo_ocean_o2 + apo_split['n2_ocean']
@@ -444,7 +444,7 @@ def apo(ocean_o2, ff_co2, ocean_co2, ocean_n2, ff_o2=None,
     
     else:
         if apo_ocean.time.diff(dim="time").values.mean() != apo_split['co2_ff'].time.diff(dim="time").values.mean():
-            apo = han_func.combine_diff_resolution(apo_ocean, apo_split['co2_ff'],
+            apo = apo_funcs.combine_diff_resolution(apo_ocean, apo_split['co2_ff'],
                                                    method = 'add', verbose = 'False')
         else:
             apo = apo_ocean + apo_split['co2_ff']

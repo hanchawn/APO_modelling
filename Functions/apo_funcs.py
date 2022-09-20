@@ -58,7 +58,8 @@ def get_timeseries(sites, year, sources, path=None, drop_monthly=True, verbose=T
 
         if drop_monthly:
             vars_rename = {dv: ''.join(dv.split('_day')) for dv in ts_data.data_vars if 'day' in dv}
-            vars_rename['co2_ocean_nemo_mth'] = 'co2_ocean_nemo'
+            if 'ocean' in sources:
+                vars_rename['co2_ocean_nemo_mth'] = 'co2_ocean_nemo'
             ts_data_all[site] = ts_data.rename(vars_rename)
         else:
             ts_data_all[site] = ts_data

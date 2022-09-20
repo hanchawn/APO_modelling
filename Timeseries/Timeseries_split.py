@@ -8,7 +8,7 @@ from dateutil.relativedelta import relativedelta
 from acrg.convert import concentration
 from acrg.name.name import footprints, flux, flux_for_HiTRes, timeseries_HiTRes
 
-import han_func
+import apo_funcs
 
 ################# Input information #################
 year = int(sys.argv[1])
@@ -214,7 +214,7 @@ filenames = {spec: os.path.join('/user', 'work', 'vf20487', 'Timeseries', 'o2_co
 '''
 
 ff_str = f'_{ff_model}' if ff_model!='edgar-ukghg' else ''
-ox_ratio = ff_str if oxidativeratio is None else f'{ff_str}-{oxidativeratio}' if ff_str!='' else f'_{oxidativeratio} '
+ox_ratio = ff_str if oxidativeratio is None else f'{ff_str}-{oxidativeratio}' if ff_str!='' else f'_{oxidativeratio}'
 model_str = f'_{bio_model}' if source=='bio' else f'{ox_ratio}' if source=='ff' else ''
 date_str = f'climatology_{year}' if climatology and month is None else \
            f'climatology_{year}{str(month).zfill(2)}' if climatology else \

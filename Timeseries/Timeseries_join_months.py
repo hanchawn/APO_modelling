@@ -1,7 +1,7 @@
 import os
 import sys
 
-from han_func import join_monthly_files
+from apo_funcs import join_monthly_files
 
 year = sys.argv[1]
 site = sys.argv[2]
