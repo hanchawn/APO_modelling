@@ -222,8 +222,8 @@ def join_monthly_files(file_pattern:str, year:int, path:str=None, zip_months:boo
 
 def show_map(data, ax=None, coast_color='black', lat=None, lon=None, crop_uk=False,
              im_kwargs={}, colorbar=True, colorbar_kwargs=None, colorbar_label_kwargs=None,
-             colorbar_tick_kwargs=None, fig_kwargs=None, ax_kwargs=None, show=True,
-             reverse_cmap=False):
+             colorbar_ticks=None, colorbar_tick_kwargs=None, fig_kwargs=None, ax_kwargs=None,
+             show=True, reverse_cmap=False):
     '''
     Inputs
     ------
@@ -310,7 +310,9 @@ def show_map(data, ax=None, coast_color='black', lat=None, lon=None, crop_uk=Fal
             colorbar_label_kwargs = {} if colorbar_label_kwargs is None else colorbar_label_kwargs
             colorbar_label_kwargs['label'] = colorbar_kwargs['label']
             colorbar_kwargs.pop('label')
-        cbars = [plt.colorbar(ims[aa], ax=ax, **colorbar_kwargs) for aa, ax in enumerate(axes.flatten())]
+        colorbar_ticks = colorbar_ticks if type(colorbar_ticks) in [list, np.ndarray] or colorbar_ticks==None else [colorbar_ticks]
+        cbars = [plt.colorbar(ims[aa], ax=ax, **colorbar_kwargs) for aa, ax in enumerate(axes.flatten())] if colorbar_ticks is None else \
+                [plt.colorbar(ims[aa], ax=ax, ticks=colorbar_ticks[aa], **colorbar_kwargs) for aa, ax in enumerate(axes.flatten())]
         if colorbar_label_kwargs is not None:
             for cc, cbar in enumerate(cbars):
                 # create a new dict for the colorbar label kwargs for this axis
