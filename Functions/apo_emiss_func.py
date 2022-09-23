@@ -414,8 +414,6 @@ def apo(ocean_o2, ff_co2, ocean_co2, ocean_n2, ff_o2=None,
             mol fraction of nitrogen in dry air
             default = 0.78084
     '''
-    import APO_modelling.Functions.apo_funcs as apo_funcs
-    
     apo_split = apo_species_split(ocean_o2 = ocean_o2,
                                   ff_co2 = ff_co2,
                                   ocean_co2 = ocean_co2,
