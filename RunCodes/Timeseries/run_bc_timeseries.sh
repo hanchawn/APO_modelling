@@ -10,6 +10,8 @@ conda info --envs
 
 conda activate acrg
 
+echo Current Date and Time is: `date +"%Y-%m-%d %T"`
+
 year=2019
 sector='bc'
 

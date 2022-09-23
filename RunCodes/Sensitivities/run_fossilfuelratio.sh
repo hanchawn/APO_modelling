@@ -2,7 +2,7 @@
 #PBS -l select=1:ncpus=4:mem=80gb
 #PBS -l walltime=72:00:00
 
-echo Time is "$(date)"
+echo Current Date and Time is: `date +"%Y-%m-%d %T"`
 echo Running on host "$(hostname)"
 echo Directory is "$(pwd)"
 

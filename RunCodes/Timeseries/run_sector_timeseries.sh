@@ -12,7 +12,9 @@ conda info --envs
 
 conda activate acrg
 
-year=2014
+echo Current Date and Time is: `date +"%Y-%m-%d %T"`
+
+year=2015
 site='WAO'
 
 month='all' #'none'
