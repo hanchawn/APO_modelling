@@ -12,16 +12,16 @@ conda activate acrg
 
 echo Current Date and Time is: `date +"%Y-%m-%d %T"`
 
-year=2019
-sector='bc'
-
+declare -a sites=("WAO" "HFD" "RGL")
+year=2015
 month='all'
+climatology='false'
 
+sector='bc'
 echo $year
 echo $month
 echo $sector
 
-declare -a sites=("WAO") #"HFD" "MHD")
 
 for site in "${sites[@]}"
 do
@@ -36,7 +36,7 @@ do
             ((mth++))
         done
 
-        python /user/home/vf20487/code/APO_modelling/Timeseries/Timeseries_join_months.py $year $site $sector
+        python /user/home/vf20487/code/APO_modelling/Timeseries/Timeseries_join_months.py $year $site $sector $climatology
     else
         if [ $month == 'none' ]; then
             echo 'Creating timeseries for whole year'

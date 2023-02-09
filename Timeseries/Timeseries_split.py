@@ -1,3 +1,21 @@
+'''
+Run the CO2 forward model for one APO component
+
+The inputs are imported from the bash script:
+
+- year,
+- month,
+- site,
+- source - e.g. ocean, bio, ff,
+- biospheric model - e.g. orchidee, lpjguess, cardamom,
+- ff model to use - e.g. edgar, ukghg
+- oxidative ratio model to use - e.g. gridfed, ukghg,
+- climatology - True or False
+
+Outputs a netcdf file with the timeseries for all APO species associated the source specified
+
+'''
+
 import os
 import sys
 import numpy as np
@@ -32,16 +50,18 @@ end = start + time_diff
 print(f'Calculating timeseries between {start} and {end}')
 
 ################# Get footprints #################
+height = '185magl' if site=='TAC' else None
 fp_ds = footprints(site, 'UKV',
                    start = start,
                    end = end, 
+                   height = height,
                    domain = 'EUROPE', 
                    species = fp_species,
                    HiTRes = HiTRes,
                    chunks = {'time': 50})
 
 ################# Get emissions #################
-if source=='ff':
+if 'ff' in source:
     ff_spec = ['co2', 'o2'] if oxidativeratio is None else ['co2']
     emissions_names = {spec: {'high_freq': f'{spec}-{ff_model}-ff-1hr'} for spec in ff_spec}
     if oxidativeratio:
@@ -53,20 +73,21 @@ elif source=='bio' and bio_model=='orchidee':
     emissions_names = {f'co2-{bio_type}': {'high_freq': f'co2-{bio_type}-orchidee-3hr'}
                        for bio_type in ['gpp', 'rtot']}
 else:
-    clim_str = '-climatology' if year>2015 or climatology else ''
-    emissions_names_nemo = {res: {f'{spec}_nemo_{res}': f'{spec}{clim_str}-nemo-ocean-{res}'
-                                  for spec in ['co2', 'o2', 'n2'] if not all([spec=='co2' and res=='day'])}
-                            for res in ['day', 'mth']}
-    
-    clim_str = '-climatology' if year>2018 or climatology else ''
-    emissions_names_ecco = {res: {f'o2_ecco_{res}': f'o2{clim_str}-ecco-ocean-{res}'}
-                            for res in ['day', 'mth']}
-    emissions_names = {res: {**emissions_res, **emissions_names_ecco[res]}
-                       for res, emissions_res in emissions_names_nemo.items()}
-    clim_str = '-climatology' if year>2020 or climatology else ''
-    emissions_names['day']['o2_jena_day'] = f'o2{clim_str}-jena-ocean-day'
+    # the species available for each ocean flux for each resolution
+    species_sims = {'day': {'ecco': ['co2', 'o2'], 'jena': ['co2', 'o2'], 'nemo': ['co2', 'o2', 'n2']},
+                    'mth': {'ecco': ['co2', 'o2'], 'nemo': ['co2', 'o2', 'n2']}}
+    # determine whether a climatology is needed
+    clim_str = {sim: '-climatology' if year>year or climatology else ''
+                for sim, year in {'ecco': 2018, 'jena': 2020, 'nemo': 2015}.items()}
 
+    # get all of the needed emissions names
+    emissions_names = {res: {sim: {f'{spec}_{sim}_{res}': f'{spec}{clim_str[sim]}-{sim}-ocean-{res}'
+                                   for spec in specs_sims}
+                             for sim, specs_sims in specs_res.items()}
+                       for res, specs_res in species_sims.items()}
+    # flatten the dictionary
     emissions_names = apo_funcs.flatten_nested_dict(emissions_names, join_keys=False)
+    emissions_names = {'_'.join(spec.split('_')[1:]): em_name for spec, em_name in emissions_names.items()}
 
 print('\nemissions names:')
 [print(f'{spec}: {emissions_name}') for spec, emissions_name in emissions_names.items()]
@@ -148,7 +169,10 @@ if source=='ocean':
         if 'uncertainty' in mf.data_vars:
             mf_ts[f'{spec}_uncertainty'] = (mf.uncertainty**2).sum(dim=['lat', 'lon'])**0.5
 
-    ts_tuple = {spec: (['time'], mf.compute().values) for spec, mf in mf_ts.items()}
+    ts_tuple = {spec: (['time'], mf.compute().values,
+                       {'units': '1e-6',
+                        'flux file': f'{emissions_names[spec]}_EUROPE_{year}.nc'})
+                for spec, mf in mf_ts.items()}
     mf_ts = xr.Dataset(data_vars = ts_tuple,
                        coords = {'time': fp_ds.time.values})
 
@@ -163,56 +187,12 @@ else:
                               output_fpXflux = False)
     for dv in mf_ts.data_vars:
         mf_ts[dv] = mf_ts[dv] / concentration('ppm')
-        mf_ts[dv] = mf_ts[dv].assign_attrs({'units': '1e-6'})
+        mf_ts[dv] = mf_ts[dv].assign_attrs({'units': '1e-6',
+                                            'flux file': f'{emissions_names[spec]}_EUROPE_{year}.nc'})
     if 'total' in mf_ts.data_vars:
         mf_ts = mf_ts.rename({'total': list(emissions.keys())[0]})
 
-    '''
-    # calculate the mf contribution uncertainty map using the HiTRes information
-    if len(uncertainty)>0:
-        print('Calculating mol fraction uncertainty')
-        mf_uncertainty = timeseries_HiTRes(flux_dict = uncertainty,
-                                           fp_HiTRes_ds = fp_ds, 
-                                           output_TS = False,
-                                           output_fpXflux = True) / concentration('ppm')
-        # calculate the uncertainty of the mf at a site
-        mf_uncertainty = {spec: (mf_unc**2).sum(dim=['lat', 'lon'])**0.5
-                          for spec, mf_unc in mf_uncertainty.items()}
-    else:
-        mf_uncertainty = {}
-    '''
-
 ################# Save results #################
-'''
-# put the flux and uncertainties into tuples for creating a Dataset
-ts_tuple = {spec: {'flux': (['time'], mf.compute()),
-                   'uncertainty': (['time'], mf_uncertainty[spec].compute())}
-                  if spec in mf_uncertainty.keys() else
-                  {'flux': (['time'], mf.compute())}
-            for spec, mf in mf_ts.items()}
-
-# put the flux and uncertainties into a Dataset for each species
-ts_ds = {spec: xr.Dataset(data_vars = ts_spec,
-                          coords = dict(time = mf_ts[spec].time),
-                          attrs = emissions[spec][freq].attrs)
-         for spec, ts_spec in ts_tuple.items()}
-
-# add attributes to the data variables
-for spec, ts_spec in ts_ds.items():
-    ts_spec['flux'] = ts_spec['flux'].assign_attrs({'units': '1e-6'})
-    if 'uncertainty' in ts_spec.data_vars:
-        ts_spec['uncertainty'] = ts_spec['uncertainty'].assign_attrs({'units': '1e-6',
-                                                                      'description': emissions[spec][freq].uncertainty.attrs['description']})
-
-# create filenames
-source = {spec: f'{source}_{sim}' if source=='ocean' else \
-                f'{source}_{ox_ratio_model}' if source=='ff' and spec=='o2' else source
-          for spec in species}
-filenames = {spec: os.path.join('/user', 'work', 'vf20487', 'Timeseries', 'o2_co2',
-                                f'{spec}_{site}_{source_spec}_timeseries_{year}.nc')
-             for spec, source_spec in source.items()}
-'''
-
 ff_str = f'_{ff_model}' if ff_model!='edgar-ukghg' else ''
 ox_ratio = ff_str if oxidativeratio is None else f'{ff_str}-{oxidativeratio}' if ff_str!='' else f'_{oxidativeratio}'
 model_str = f'_{bio_model}' if source=='bio' else f'{ox_ratio}' if source=='ff' else ''

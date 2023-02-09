@@ -1,10 +1,10 @@
 #!/bin/sh
 #SBATCH --nodes=1
-#SBATCH --cpus-per-task=4
-#SBATCH --time=12:00:00
-#SBATCH --mem=20gb
+#SBATCH --cpus-per-task=1
+#SBATCH --time=15:00:00
+#SBATCH --mem=30gb
 
-#100gb
+#22gb
 
 source ~/.bashrc
 conda info --envs
@@ -12,23 +12,23 @@ conda activate acrg
 
 echo Current Date and Time is: `date +"%Y-%m-%d %T"`
 
-declare -a years=("2015") # "2015" "2017" "2018" "2019" "2020"
-declare -a sites=("WAO") #"RGL" "HFD" "MHD")
+declare -a years=("2014" "2015" "2016" "2017" "2018" "2019" "2020" "2021") # ("2015") #
+declare -a sites=("HFD" "RGL" "WAO") # "TAC" "MHD"
 
-sector='ff' #'ocean' #'bc' #'bio' #
+sector='ocean' #'ffcomb' #'bc' #'bio' #
 
 # whether to use averaged fluxes across multiple years
 climatology='false' #'true' #
 
 # oxidativeratio should be 'None' if using the sector-derived O2 fluxes
-oxidativeratio='gridfed' #'None' #'gridfed-ukghg' #
+oxidativeratio='None' #'gridfed' #'gridfed-ukghg' #
 # if ff_model='edgar_ukghg' the inventory names are not added to the output filename
 ff_model='edgar-ukghg' #'edgar' #
 bio_model='orchidee'
 
 # if months='all' all months throughout the year are run and then joined
 # if months='year' the whole year is run in one go - not recommended due to high memory use
-month='all' #("5") #1 #'year' #
+month='all' #9 #'year' #
 
 echo 'Years: '$years
 echo 'Sites: '$sites
