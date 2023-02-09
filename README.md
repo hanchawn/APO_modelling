@@ -8,7 +8,7 @@ We investigate the model sensitivities to its components: the biospheric and fos
 
 The forward model is run using several scripts:
 
-- Timeseries/Timeseries_split.py
+- Timeseries/Timeseries_split.py\
     Runs the forward model for each APO component.
     Run using RunCodes/Timeseries/run_split_timeseries.sh.
 
@@ -26,17 +26,17 @@ The forward model is run using several scripts:
         - ff: o2 & co2
         - ocean: co2, o2, n2    (co2 & o2 are calculated for all ocean models)
 
-- Timeseries/Timeseries_join_months.py
+- Timeseries/Timeseries_join_months.py\
     Joins the forward models for each month produced above into a model for the whole year.
     This is automatically run when running RunCodes/Timeseries/run_split_timeseries.sh.
 
-- Timeseries/Timeseries_sectors.py
+- Timeseries/Timeseries_sectors.py\
     Runs the forward model for each ff sector separately.
 
-- Timeseries/Timeseries_sectors_join.ipynb
+- Timeseries/Timeseries_sectors_join.ipynb\
     Joins the above into one netcdf file with variables for each sector.
 
-- Timeseries/Timeseries_bc.py
+- Timeseries/Timeseries_bc.py\
     Runs the forward model for the boundary conditions.
     Run using RunCodes/Timeseries/run_bc_timeseries.sh.
 
@@ -52,7 +52,7 @@ The forward model is run using several scripts:
         - O2
         - delta O2/N2'
 
-- Timeseries/JC_baseline_adjust.ipynb
+- Timeseries/JC_baseline_adjust.ipynb\
     Calculates an adjustment to the Jena Carboscope (JC) baseline:
         - compares the no-ocean APO model with the osb for each month;
         - subtracts the difference from the JC baseline;
@@ -60,34 +60,34 @@ The forward model is run using several scripts:
 
 ## Plotting the APO forward model
 
-- Timeseries/APO_plot.ipynb
+- Timeseries/APO_plot.ipynb\
     - Plots the APO components and APO models
     - Calculates & plots correlations between the APO models and observations
 
-- Timeseries/O2_CO2.ipynb
+- Timeseries/O2_CO2.ipynb\
     Plots the CO2 and O2 forward models
 
 ## Running sensitivity tests
 
-- SensitivityStudy/BiosphericRatio.ipynb
+- SensitivityStudy/BiosphericRatio.ipynb\
     - Creates a normally distributed random sample of oxidative ratio values,
     - Calculates the total APO model for each values,
     - Finds the standard deviation etc,
     - Saves the 1 sigma uncertainty timeseries to a netcdf file.
 
-- SensitivityStudy/EDGAR_UKGHG_compare.ipynb
+- SensitivityStudy/EDGAR_UKGHG_compare.ipynb\
     Compares the EDGAR and UKGHG ffCO2 fields and APO mdoels
 
     Plots both fields and the difference between them,
     Plots the APO model from each field & obs, as well as the ff uncertainty from the Monte Carlo (see below)
 
-- SensitivityStudy/FossilFuelMonteCarlo.ipynb
+- SensitivityStudy/FossilFuelMonteCarlo.ipynb\
     - Randomly varies the ffCO2 within a range,
     - Calculates the total APO model for each ffCO2 timeseries,
     - Finds the standard deviation etc,
     - Saves the 1 sigma uncertainy to a netcdf file.
 
-- SensitivityStudy/FossilFuelOR_sectors.ipynb
+- SensitivityStudy/FossilFuelOR_sectors.ipynb\
     - Creates a normally distributed random sample of oxidative ratio values,
     - Multiplies the ffCO2 by each oxidative ratio to get ffO2 for each sector,
     - Gets a total ffO2,
@@ -95,12 +95,12 @@ The forward model is run using several scripts:
     - Converts to uncertainty in APO,
     - Saves the 1 sigma uncertainy to a netcdf file.
 
-- SensitivityStudy/Ocean_Compare.ipynb
+- SensitivityStudy/Ocean_Compare.ipynb\
     Compare the ocean fields for each flux estimate
 
     Creates a figure with a field for each ocean o2 estimate and a footprint overlaid
 
-- SensitivityStudy/Ocean_yrVclim.ipynb
+- SensitivityStudy/Ocean_yrVclim.ipynb\
     Compare the ocean models using
         - yearly data vs climatology,
         - daily vs monthly resolution.
@@ -110,13 +110,13 @@ The forward model is run using several scripts:
 
 ## Estimating the APO-derived ffCO2
 
-- ffCO2/ffCO2_obs.ipynb
+- ffCO2/ffCO2_obs.ipynb\
     Estimate ffCO2 from the observations
 
-- ffCO2/ffCO2.ipynb
+- ffCO2/ffCO2.ipynb\
     Derive fCO2 from the APO model
 
-- ffCO2/weighted_oxidative_ratio_timeseries.ipynb
+- ffCO2/weighted_oxidative_ratio_timeseries.ipynb\
     Estimate a timeseries of footprint weighted oxidative ratios and APO:ffCO2 ratios
 
 
