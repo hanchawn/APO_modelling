@@ -13,20 +13,18 @@ The forward model is run using several scripts:
     Run using RunCodes/Timeseries/run_split_timeseries.sh.
 
     In the bash script we specify the:
-
-        - year(s);
-        - site(s);
-        - sector: either bio, ff, or ocean;
-        - climatology: true or false;
-        - oxidative ratio source;
-        - ff model: edgar or edgar-ukghg;
-        - month: either all (runs each month separately before joining to reduce memory use), a single month, or year (runs whole year in one go).
+    - year(s);
+    - site(s);
+    - sector: either bio, ff, or ocean;
+    - climatology: true or false;
+    - oxidative ratio source;
+    - ff model: edgar or edgar-ukghg;
+    - month: either all (runs each month separately before joining to reduce memory use), a single month, or year (runs whole year in one go).
 
     This outputs a netcdf file containing the forward model for each species required within the sector specified:
-
-        - bio: o2 & co2     (not needed for APO but run to model CO2 and O2 separately)
-        - ff: o2 & co2
-        - ocean: co2, o2, n2    (co2 & o2 are calculated for all ocean models)
+    - bio: o2 & co2     (not needed for APO but run to model CO2 and O2 separately)
+    - ff: o2 & co2
+    - ocean: co2, o2, n2    (co2 & o2 are calculated for all ocean models)
 
 - Timeseries/Timeseries_join_months.py\
     Joins the forward models for each month produced above into a model for the whole year.
@@ -43,25 +41,22 @@ The forward model is run using several scripts:
     Run using RunCodes/Timeseries/run_bc_timeseries.sh.
 
     In the bash script we specify the:
-
-        - year;
-        - site(s);
-        - climatology: true or false;
-        - month: either all (runs each month separately before joining to reduce memory use), a single month, or year (runs whole year in one go).
+    - year;
+    - site(s);
+    - climatology: true or false;
+    - month: either all (runs each month separately before joining to reduce memory use), a single month, or year (runs whole year in one go).
     
     This outputs a netcdf file containing the baseline for:
-
-        - delta APO
-        - CO2
-        - O2
-        - delta O2/N2'
+    - delta APO
+    - CO2
+    - O2
+    - delta O2/N2'
 
 - Timeseries/JC_baseline_adjust.ipynb\
     Calculates an adjustment to the Jena Carboscope (JC) baseline:
-
-        - compares the no-ocean APO model with the osb for each month;
-        - subtracts the difference from the JC baseline;
-        - saves the adjusted baseline to the bc timeseries netcdf file.
+    - compares the no-ocean APO model with the osb for each month;
+    - subtracts the difference from the JC baseline;
+    - saves the adjusted baseline to the bc timeseries netcdf file.
 
 ## Plotting the APO forward model
 
@@ -107,9 +102,8 @@ The forward model is run using several scripts:
 
 - SensitivityStudy/Ocean_yrVclim.ipynb\
     Compare the ocean models using:
-
-        - yearly data vs climatology,\
-        - daily vs monthly resolution.
+    - yearly data vs climatology,
+    - daily vs monthly resolution.
 
 - SensitivityStudy/Plot_all.ipynb\
     Creates a figure showing the total APO model and the oxidative ratio uncertainties
