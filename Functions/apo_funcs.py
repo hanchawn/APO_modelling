@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from acrg.name import name
 from acrg.convert import concentration
 
-def get_timeseries(sites, year, sources, path=None, drop_monthly=True, verbose=True):
+def get_timeseries(sites, year, sources, path=None, climatology=False, drop_monthly=True, verbose=True):
     '''
     '''
     path = os.path.join('/user', 'work', 'vf20487', 'Timeseries', 'o2_co2') if path is None \
@@ -23,8 +23,9 @@ def get_timeseries(sites, year, sources, path=None, drop_monthly=True, verbose=T
         ts_path = os.path.join('/user', 'work', 'vf20487', 'Timeseries', 'o2_co2')
 
         # find the file
-        ts_files = {source: glob.glob(os.path.join(ts_path, f'*{site}_{source}_timeseries_{year}.nc'))
-                        for source in sources}
+        clim_str = '_climatology_' if climatology else '_'
+        ts_files = {source: glob.glob(os.path.join(ts_path, f'*{site}_{source}_timeseries{clim_str}{year}.nc'))
+                    for source in sources}
 
         [print(f'{source}: {file_source}') for source, file_source in ts_files.items()]
 
@@ -51,22 +52,24 @@ def get_timeseries(sites, year, sources, path=None, drop_monthly=True, verbose=T
                     ts_data = ts_data.rename({vv: vv.replace('-', '_')})
 
         # drop uncertainties, differences
-        vars_drop = [dv for dv in ts_data.data_vars if any([any([ss in dv for ss in ['unc', 'diff']]), all([('mth' in dv), ('co2' not in dv)])])]
+        vars_drop = [dv for dv in ts_data.data_vars if any([any([ss in dv for ss in ['unc', 'diff']])])]
         vars_drop2 = [dv for dv in ts_data.data_vars if dv not in vars_drop and all([dv.split('_')[0]!=spec for spec in ['apo', 'co2', 'n2', 'o2']])]
-        vars_drop3 = [dv for dv in ts_data.data_vars if all([('mth' in dv), ('co2' not in dv)])] if drop_monthly else []
-        ts_data = ts_data.drop_vars(vars_drop+vars_drop2+vars_drop3)
+        vars_drop3 = [dv for dv in ts_data.data_vars if 'mth' in dv] if drop_monthly else []
+        vars_drop = vars_drop+vars_drop2+vars_drop3
+        if verbose and len(vars_drop)>0:
+            print(f'\nDropping variables: \n{vars_drop}')
+        ts_data = ts_data.drop_vars(vars_drop)
 
         if drop_monthly:
             vars_rename = {dv: ''.join(dv.split('_day')) for dv in ts_data.data_vars if 'day' in dv}
-            if 'ocean' in sources:
-                vars_rename['co2_ocean_nemo_mth'] = 'co2_ocean_nemo'
+            # if 'ocean' in sources and 'co2_ocean_nemo_mth' in ts_data.data_vars:
+            #     vars_rename['co2_ocean_nemo_mth'] = 'co2_ocean_nemo'
             ts_data_all[site] = ts_data.rename(vars_rename)
         else:
             ts_data_all[site] = ts_data
 
         if verbose:
-            print('\nData variables:')
-            print([dv for dv in ts_data_all[site].data_vars])
+            print(f'\nData variables: \n{[dv for dv in ts_data_all[site].data_vars]}\n---------------------------\n')
 
     return ts_data_all
 
@@ -223,7 +226,7 @@ def join_monthly_files(file_pattern:str, year:int, path:str=None, zip_months:boo
 def show_map(data, ax=None, coast_color='black', lat=None, lon=None, crop_uk=False,
              im_kwargs={}, colorbar=True, colorbar_kwargs=None, colorbar_label_kwargs=None,
              colorbar_ticks=None, colorbar_tick_kwargs=None, fig_kwargs=None, ax_kwargs=None,
-             show=True, reverse_cmap=False):
+             show=True, reverse_cmap=False, return_im=False):
     '''
     Inputs
     ------
@@ -277,6 +280,8 @@ def show_map(data, ax=None, coast_color='black', lat=None, lon=None, crop_uk=Fal
         fig_kwargs['ncols'] = fig_kwargs['ncols'] if 'ncols' in fig_kwargs else len(data)
         fig, axes = plt.subplots(subplot_kw=ax_kwargs, **fig_kwargs)
         axes = np.array([axes]) if type(axes)!=np.ndarray else axes
+    else:
+        axes = np.array([ax]) if type(ax)!=np.ndarray else ax
     
     # crop the data if required
     data = [dat.loc[dict(lat=lat, lon=lon)] for dat in data] if all([lat, lon]) else data
@@ -334,9 +339,15 @@ def show_map(data, ax=None, coast_color='black', lat=None, lon=None, crop_uk=Fal
         plt.show()
     
     if ax is None:
-        return fig, axes
+        if return_im:
+            return fig, axes, ims
+        else:
+            return fig, axes
     else:
-        return axes
+        if return_im:
+            return axes, ims
+        else:
+            return axes
 
 
 def convert_latlon_metres(lat1, lon1, lat2, lon2, units=None, verbose=True):
