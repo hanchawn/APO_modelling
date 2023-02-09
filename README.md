@@ -60,7 +60,7 @@ The forward model is run using several scripts:
 
 ## Plotting the APO forward model
 
-- Timeseries/APO_plot.ipynb\
+- Timeseries/APO_plot.ipynb
     - Plots the APO components and APO models
     - Calculates & plots correlations between the APO models and observations
 
@@ -69,7 +69,7 @@ The forward model is run using several scripts:
 
 ## Running sensitivity tests
 
-- SensitivityStudy/BiosphericRatio.ipynb\
+- SensitivityStudy/BiosphericRatio.ipynb
     - Creates a normally distributed random sample of oxidative ratio values,
     - Calculates the total APO model for each values,
     - Finds the standard deviation etc,
@@ -81,13 +81,13 @@ The forward model is run using several scripts:
     Plots both fields and the difference between them,
     Plots the APO model from each field & obs, as well as the ff uncertainty from the Monte Carlo (see below)
 
-- SensitivityStudy/FossilFuelMonteCarlo.ipynb\
+- SensitivityStudy/FossilFuelMonteCarlo.ipynb
     - Randomly varies the ffCO2 within a range,
     - Calculates the total APO model for each ffCO2 timeseries,
     - Finds the standard deviation etc,
     - Saves the 1 sigma uncertainy to a netcdf file.
 
-- SensitivityStudy/FossilFuelOR_sectors.ipynb\
+- SensitivityStudy/FossilFuelOR_sectors.ipynb
     - Creates a normally distributed random sample of oxidative ratio values,
     - Multiplies the ffCO2 by each oxidative ratio to get ffO2 for each sector,
     - Gets a total ffO2,
