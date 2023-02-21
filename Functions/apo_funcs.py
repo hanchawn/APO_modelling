@@ -9,6 +9,29 @@ import matplotlib.pyplot as plt
 from acrg.name import name
 from acrg.convert import concentration
 
+def make_date_string(year, months=None):
+    '''
+    Create a string to use for file naming from the input dates
+
+    Inputs
+    ------
+    year: (int or float)
+    months: (list or np.ndarray)
+
+    Outputs
+    -------
+    string
+        string combining the dates given
+    '''
+    year = int(year)
+    months = [months] if type(months) in [int, float] else months
+    date_str = f'{year}' if months==[mm for mm in range(1, 13)] or months is None else \
+               f'{year}{str(months[0]).zfill(2)}-{str(months[-1]).zfill(2)}' if len(months)>2 else \
+               f'{year}{str(months[0]).zfill(2)}-{year}{str(months[-1]).zfill(2)}' if len(months)==2 else \
+               f'{year}{str(months[0]).zfill(2)}'
+    
+    return date_str
+
 def get_timeseries(sites, year, sources, path=None, climatology=False, drop_monthly=True, verbose=True):
     '''
     '''
@@ -22,18 +45,19 @@ def get_timeseries(sites, year, sources, path=None, climatology=False, drop_mont
         # paths to data
         ts_path = os.path.join('/user', 'work', 'vf20487', 'Timeseries', 'o2_co2')
 
-        # find the file
+        # find the files
         clim_str = '_climatology_' if climatology else '_'
         ts_files = {source: glob.glob(os.path.join(ts_path, f'*{site}_{source}_timeseries{clim_str}{year}.nc'))
                     for source in sources}
-
         [print(f'{source}: {file_source}') for source, file_source in ts_files.items()]
 
+        # open the files
         ts_data_dict = {source: name.open_ds(file_source[0]) for source, file_source in ts_files.items()
                         if len(file_source)>0}
-
-        ts_data = ts_data_dict['ff']['co2'].to_dataset(name='co2_ff') if 'ff' in ts_data_dict.keys() else \
-                    ts_data_dict['ocean']['co2_nemo_mth'].to_dataset(name='co2_ocean_nemo_mth')
+        # create a new dataset with the time coords
+        time = list(list(ts_data_dict.values())[0].values())[0].time.values
+        ts_data = xr.Dataset(coords={'time': time})
+        # loop through the timeseries, reformat the variable name, and add to the dataset
         for source, ts_data_source in ts_data_dict.items():
             for data_var in ts_data_source.data_vars:
                 dv_name = f'{data_var.split("_")[0]}_ocean_{"_".join(data_var.split("_")[1:])}' if source=='ocean' \
@@ -46,10 +70,10 @@ def get_timeseries(sites, year, sources, path=None, climatology=False, drop_mont
                 ts_data['o2_ff'] = -ts_data.o2_ff if (ts_data.o2_ff.fillna(1)>0).all() else ts_data.o2_ff
         # # make sur the units are correct
         for vv in ts_data.data_vars:
-                ts_data[vv] = ts_data[vv] / concentration('ppm') if all(abs(ts_data[vv])<1e-4) else ts_data[vv]
-                if '-' in vv:
-                    if verbose: print(f"renaming {vv}: {vv.replace('-', '_')}")
-                    ts_data = ts_data.rename({vv: vv.replace('-', '_')})
+            ts_data[vv] = ts_data[vv] / concentration('ppm') if all(abs(ts_data[vv])<1e-4) else ts_data[vv]
+            if '-' in vv:
+                if verbose: print(f"renaming {vv}: {vv.replace('-', '_')}")
+                ts_data = ts_data.rename({vv: vv.replace('-', '_')})
 
         # drop uncertainties, differences
         vars_drop = [dv for dv in ts_data.data_vars if any([any([ss in dv for ss in ['unc', 'diff']])])]
@@ -442,225 +466,6 @@ def convert_degrees_metres(lat, d_lat, d_lon, units=None, verbose=True):
     lat = [lat - d_lat/2, lat + d_lat/2]
     dist = latlon_distance(lat, lon, units=units, verbose=verbose)
     return dist
-
-
-def inversion_with_bias(obs_data, sensitivity, obs_uncertainty=None, prior_uncertainty=None,
-                        number=1, standard_deviation=0.1, mean=1, noise=None,
-                        plot_all=True, plot_individual=False, time=None, ax_kwargs={},
-                        data_file_name=None, fig_file_name=None, global_attrs=None):
-    '''
-    Run an analytical inversion, adding a bias to the obs data
-    A constant random bias is added to the observations
-    This is selected from a gaussian distribution using the given standard deviation and mean
-    
-    Inputs
-    ------
-    obs_data: numpy.ndarray
-        observational data, nx1 vector
-    sensitivity: numpy.ndarray
-        sensitivity matrix, nxm matrix
-    model_data_uncertainty: numpy.ndarray
-        model-data mismatch covariance, nxn
-    prior_uncertainty: numpy.ndarray
-        covariance of the errors associated with the prior estimate
-    number: float or int, optional
-        number of inversions to run
-    standard_deviation: float or int, optional
-        standard deviation used to simulate random bias values
-    mean: float or int, optional
-        mean used to simulate random bias values
-    noise: dict
-        noise to add to the obs data for each run
-        dict of numpy.ndarrays
-    plot_all: bool, optional
-        if True, all results are plotted on one axis
-    plot_individual: bool, optional
-        if True, all results and plotted on separate axes
-    time: numpy.ndarray, optional
-        time coordinate, used to plot and save timeseries data
-    ax_kwargs: dict, optional
-        matplotlib axis kwargs for formatting axes
-    data_file_name: str, optional
-        file name to save results data
-    fig_file_name: str, optional
-        file name to save timeseries figure(s)
-    global_attrs: dict, optional
-        global attributes for the results data file
-        
-    Outputs
-    -------
-    bias: dict
-        percentage bias added to observations
-    posterior: dict
-        scale to apply to the observational data to give the
-        posterior flux distribution
-    covariance: dict
-        covariance of the posterior
-    prior: numpy.ndarray
-        prior flux distribution
-    mf_posterior: dict
-        posterior timeseries
-    mf_prior: numpy.ndarray
-        prior timeseries
-    
-    '''
-    # add a bias to the data - percentage is randomly sampled from a Gaussian distribution
-    bias = np.random.normal(loc=mean, scale=standard_deviation, size=int(number))
-    bias_add = obs_data.mean() * (bias*1e-2)
-    
-    bias     = {bb: bi for bb, bi in enumerate(bias)}
-    obs_bias = {bb: obs_data + bi for bb, bi in enumerate(bias_add)}
-
-    obs_bias = obs_bias if noise is None else {bb: obs + noise[bb] for bb, obs in obs_bias.items()}
-    
-    prior = np.ones([sensitivity.shape[0], sensitivity.shape[1]])
-    
-    # run the analytical inversion for each bias value
-    result = {bb: inversion_analytical(obs_data = odb,
-                                       prior = prior,
-                                       sensitivity = np.nan_to_num(sensitivity),
-                                       model_data_uncertainty = obs_uncertainty,
-                                       prior_uncertainty = prior_uncertainty)
-              for bb, odb in obs_bias.items()}
-    
-    posterior    = {bb: res[0] for bb, res in result.items()}
-    covariance   = {bb: res[1] for bb, res in result.items()}
-
-    # calculate the mol fraction timeseries
-    mf_prior     = np.transpose(sensitivity) @ prior
-    mf_posterior = {bb: np.transpose(sensitivity) @ np.array(post)
-                    for bb, post in posterior.items()}
-    
-    if data_file_name is not None and time is not None:
-        mf_data_vars = {f'mf_{mf_key+1}': (['time'], mf_var[:,0]) for mf_key, mf_var in mf_posterior.items()}
-        attrs        = {'description' : 'CO2 inversion estimated by minimising a cost function'}
-        global_attrs = {} if global_attrs is None else global_attrs
-        attrs        = {**attrs, **global_attrs}
-        
-        time = time if type(time)==np.ndarray else time
-        posterior_ds = xr.Dataset(data_vars = mf_data_vars,
-                                  coords = {'time': time},
-                                  attrs = attrs)        
-        for key, bb in bias.items():
-            posterior_ds[f'mf_{key+1}'] = posterior_ds[f'mf_{key+1}'].assign_attrs({'description': 'mol fraction timeseries',
-                                                                                    'units': 'mol/mol',
-                                                                                    'bias': f'{bb} per cent'})
-
-        print(f'Saving results to {data_file_name}')
-        posterior_ds.to_netcdf(data_file_name)
-    
-    if any([plot_all, plot_individual]) and time is None:
-        print('time must be given, cannot plot')
-        fig_file_name = None
-    elif plot_all and time is not None:
-        # run the analytical conversion for the obs with no bias, for comparison
-        post_no_bias, cov_no_bias = inversion_analytical(obs_data = obs_data,
-                                                         prior = prior,
-                                                         sensitivity = np.nan_to_num(sensitivity),
-                                                         model_data_uncertainty = obs_uncertainty,
-                                                         prior_uncertainty = prior_uncertainty)
-        
-        mf_post_no_bias = np.transpose(sensitivity) @ np.array(post_no_bias)
-        
-        # plot the results
-        fig, axes = plt.subplots(nrows=2, ncols=1, sharex=True, **ax_kwargs)
-        # plot the obs
-        axes[0].set_title('Obs data with a bias')
-        [axes[0].plot(time, odb) for odb in obs_bias.values()]
-        # plot the posteriors
-        axes[1].set_title('Posterior')
-        [axes[1].plot(time, mf[:, 0]) for mf in mf_posterior.values()]
-        axes[1].plot(time, mf_post_no_bias[:,0], color='k', label='posterior with no added bias')
-        # plot the prior
-        [ax.plot(time, mf_prior[:,0], '-.', linewidth=4, color='c', label='prior') for ax in axes.flat]
-        
-        axes[1].legend(loc='best')
-        plt.show()
-    if plot_individual and time is not None:
-        
-        # plot the results
-        nrows = number if number<5 else 5
-        fig, axes = plt.subplots(nrows=nrows, ncols=1, sharex=True, **ax_kwargs)
-        # plot the obs
-        [axes[mm].plot(time, obs_bias[mm], '--', color='m', label='observation + bias') for mm in range(nrows)]
-        # plot the posteriors
-        [axes[mm].plot(time, mf_posterior[mm][:, 0], color='k', label='posterior') for mm in range(nrows)]
-        # plot the prior
-        [ax.plot(time, mf_prior[:,0], '-.', color='c', label='prior') for ax in axes.flat]
-        # add the value of the bias
-        [axes[mm].text(0.01, 0.1, f'bias = {bias[mm]:.2g}%', transform=axes[mm].transAxes) for mm in range(nrows)]
-        
-        axes[0].legend(loc='best')
-        plt.show()
-    
-    if fig_file_name is not None and any([plot_individual, plot_all]):
-        print(f'Saving figure to {fig_file_name}')
-        fig.savefig(fig_file_name, bbox_inches = 'tight', pad_inches = 0)
-        
-    return bias, posterior, covariance, prior, mf_posterior, mf_prior
-
-
-def inversion_analytical(obs_data, sensitivity, prior=None, model_data_uncertainty=None, prior_uncertainty=None):
-    '''
-    Run an analytical inversion, by minimising a cost function
-    Tarantola, 1987; Enting, 2002; Michalak, 2005
-    
-    Inputs
-    ------
-    obs_data: numpy.ndarray
-        observational data, nx1 vector
-    sensitivity: numpy.ndarray
-        sensitivity matrix, nxm matrix
-    prior: numpy.ndarray
-        prior estimate of the flux distribution
-    model_data_uncertainty: numpy.ndarray
-        model-data mismatch covariance, nxn
-    prior_uncertainty: numpy.ndarray
-        covariance of the errors associated with the prior estimate
-        
-    Output
-    ------
-    posterior: numpy.matrix
-    covariance: numpy.matrix
-    
-        posterior flux distribution and its covariance
-    '''
-    
-    y   = np.transpose(np.matrix(obs_data))     # observational data
-    H   = np.transpose(np.matrix(sensitivity))  # sensitivity matrix
-    s_p = prior if prior is not None else np.ones([sensitivity.shape[0], sensitivity.shape[1]]) # prior scaling
-
-    m = H.shape[1]
-    n = y.shape[0]
-
-    # set up the prior uncertainty matrix
-    # if an array is given check the length/shape is correct
-    if prior_uncertainty is not None and type(prior_uncertainty) not in [float, np.float64, int]:
-        if len(prior_uncertainty)!=m and len(prior_uncertainty.shape)==1:
-            raise ValueError(f'prior_uncertainty length should be 1, {m}, or {m}x{m}')
-        elif len(prior_uncertainty.shape)>2:
-            print(f'prior_uncertainty length should be 1, {m}, or {m}x{m}, taking average along time dimension')
-    # if no array is given use a diagonal of 1s, otherwise use the array as the diagonal
-    Q = np.diag(np.ones(m)) if prior_uncertainty is None else \
-        np.diag(np.ones(m))*prior_uncertainty if type(prior_uncertainty) in [float, np.float64, int] else \
-        np.diag(prior_uncertainty) if len(prior_uncertainty.shape)==1 else prior_uncertainty.mean(axis=2)
-   
-    # set up the model-data uncertainty matrix
-    # if an array is given check the length/shape is correct
-    if model_data_uncertainty is not None and type(model_data_uncertainty) not in [float, np.float64, int]:
-        if len(model_data_uncertainty)!=n:
-            raise ValueError(f'model_data_uncertainty length should be 1 or {n}')
-    # if no array is given use a diagonal of 1s, otherwise use the array as the diagonal
-    R = np.diag(np.ones(n)) if model_data_uncertainty is None else \
-        np.diag(np.ones(n))* model_data_uncertainty if type( model_data_uncertainty) in [float, np.float64, int] else \
-        np.diag(model_data_uncertainty)
-    
-    # run the inversion
-    # s_p: prior, Q: prior uncertainty, H: sensitivity,  R: model-data mismatch, y: obs
-    posterior = s_p + (Q @ H.T) @ np.linalg.inv(H @ Q @ H.T + R) @ (y - H @ s_p)
-    covariance = Q -  (Q @ H.T) @ np.linalg.inv(H @ Q @ H.T + R) @ H @ Q
-    
-    return posterior, covariance
 
 def combine_diff_resolution(data_1, data_2, method='add', data_1_res=None, data_2_res=None, verbose=True):
     '''
