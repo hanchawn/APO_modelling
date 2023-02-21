@@ -43,27 +43,32 @@ library(ncdf4)
 file_dir <- file.path("/Users", "vf20487", "Documents", "Data", "Timeseries") #, fsep="\\")
 setwd(file_dir)
 
-apo_ts <- nc_open("apo_timeseries_2015.nc")
+apo_ts <- nc_open("WAO_APO_timeseries_2015.nc")
+time <- array(ncvar_get(apo_ts, 'time'))
 
-apo_ecco <- ncvar_get(apo_ts, 'ecco')
-apo_jena <- ncvar_get(apo_ts, 'jena')
-apo_nemo <- ncvar_get(apo_ts, 'nemo')
-time <- ncvar_get(apo_ts, 'time')
+# make a data frame to add the fits into
+RFoutput <- data.frame(matrix(ncol = 5, nrow = length(time)))
+RFoutput$X1 <- time
+# rename the data frame columns
+names(RFoutput) <- c("time", 'no_ocean', 'ecco', 'jena', 'nemo')
 
-
-#inputdata <- read.csv("WAO_May2010-Jan2021_interpolated_APO.txt", header = TRUE, sep = "\t")
-#inputdata$date <- as.POSIXct(strptime(inputdata$date, format = "%d/%m/%Y %H:%M", tz = "GMT"))
-#inputdata.2 <- inputdata[,c(1,2)]
-#inputdata.2 <- na.omit(inputdata.2)
-
-# Now split the input data file into the two variables:
-
-date <- array(time) # inputdata.2[,1]
-molefract <- apo_nemo # inputdata.2[,2] *-1
-
-# Now implement the RFbaseline routine:
-
-RF <- rfbaseline(date,molefract,span=0.12,maxit=c(5,0), b = 0.6)
+# loop through the ocean models
+oceans = c('no_ocean', 'ecco', 'jena', 'nemo')
+for (ocean in oceans) {
+  # get the APO model
+  apo <- ncvar_get(apo_ts, ocean)
+  
+  if (ocean=='nemo') {b=3.0} else if (ocean=='ecco') {b=2.0} else {b=1.0}
+  
+  # run the fit
+  RF <- rfbaseline(time,apo*-1,span=0.08,maxit=c(5,0), b = b)
+  # add the fit into the data frame
+  RFoutput[ocean] <- RF$fit * -1
+  
+  # plot the model and fit 
+  plot((apo) ~ time)
+  lines(time,RF$fit*-1,col="purple",lwd=3)
+}
 
 # The important variable is the span, which should be between 0 and
 # 1, with higher values giving a smoother baseline. Also, the 'b' term affects
@@ -72,22 +77,7 @@ RF <- rfbaseline(date,molefract,span=0.12,maxit=c(5,0), b = 0.6)
 # For more imformation about how to implement the routine, please
 # refer to the IDPmisc package help pdf.
 
-# To check whether the fit is correct, plot the results:
-
-#plot((inputdata.2$APO) ~ inputdata.2$date)
-plot((molefract) ~ date)
-lines(date,-RF$fit*-1,col="purple",lwd=3)
-
-# Now export the data as a csv file with two columns - the date 
-# and the RF fit.
-
-RFoutput <- data.frame(matrix(ncol = 2, nrow = length(RF$fit)))
-RFoutput$X1 <- date
-RFoutput$X2 <- RF$fit
-names(RFoutput) <- c("date", "APO.baseline")
-RFoutput$APO.baseline <- RFoutput$APO.baseline *-1
-RFoutput.2 <- as.data.frame(timeAverage(RFoutput, avg.time = "hour", fill = TRUE))
-#RFoutput <- cbind(date,RF$fit)
-write.csv(RFoutput,file="WAO_model_REBSbaseline_2015.csv", row.names = FALSE)
+# save to csv
+write.csv(RFoutput,file="WAO_APOmodel_REBSbaseline_2015.csv", row.names = FALSE)
 
 #### END OF SCRIPT ####
