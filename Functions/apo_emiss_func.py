@@ -380,7 +380,7 @@ def apo_species_split(ocean_o2=None, ff_co2=None, ff_o2=None,
         apo_split['co2_ff'] = (ff_o2 - oxidative_ratio_bio * ff_co2) / mf_o2
 
     if ocean_co2 is not None:
-        apo_split['co2_ocean'] = -oxidative_ratio_bio * ocean_co2 / mf_o2
+        apo_split['co2_ocean'] = oxidative_ratio_bio * ocean_co2 / mf_o2
 
     if ocean_o2 is not None:
         apo_split['o2_ocean'] = ocean_o2 / mf_o2
