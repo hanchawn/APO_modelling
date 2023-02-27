@@ -8,7 +8,7 @@ We investigate the model sensitivities to its components: the biospheric and fos
 
 This is where each figure in the paper is made:
 
-- Figure 1: calculating ff fluxes
+- Figure 1: calculating ff fluxes\
     powerpoint
 - Figure 2: NAEI within EDGAR & NAEI minus EDGAR\
     SensitivityStudy/EDGAR_UKGHG_compare.ipynb (top half)
