@@ -3,6 +3,7 @@
 #SBATCH --cpus-per-task=1
 #SBATCH --time=15:00:00
 #SBATCH --mem=30gb
+#SBATCH --account=CHEM007981
 
 #22gb
 

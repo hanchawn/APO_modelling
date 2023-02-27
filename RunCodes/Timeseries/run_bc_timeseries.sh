@@ -3,6 +3,7 @@
 #SBATCH --cpus-per-task=4
 #SBATCH --time=12:00:00
 #SBATCH --mem=60gb
+#SBATCH --account=CHEM007981
 
 source ~/.bashrc
 
