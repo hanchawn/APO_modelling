@@ -49,6 +49,12 @@ And in the supplement:
     Timeseries/Plot_all.ipynb
 - Figure 7: ocean O2 flux correlations\
     Timeseries/Plot_all.ipynb
+- Figure 8: fluxes - year vs climatology\
+    SensitivityStudy/Ocean_yrVclim.ipynb
+- Figure 9: REBS modelled APO baselines\
+    ffCO2/ffCO2_obs.ipynb
+- Figure 10: model APO deirved ffCO2\
+    ffCO2/ffCO2_obs.ipynb
 
 ## Estimating the APO forward model
 
